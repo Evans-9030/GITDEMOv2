@@ -1,0 +1,223 @@
+---
+title: "ANALYSIS  CODE LAB"
+author: "Evans"
+date: "2025-09-16"
+output: html_document
+---
+#installing and loading packages 
+```{r, chunk1}
+install.packages("openxlsx")
+library("haven")
+library("readr")
+library("dplyr")
+library("openxlsx")
+library("ggplot2")
+library("tidyverse")
+```
+
+#importing DATA SET "CLASS 1 SURVEY" 
+```{r, chunk2, message=FALSE, echo=FALSE}
+class1survey25<-read.csv("/Users/apple/Desktop/WASH U FALL 2 2025/ADVANCE DATA ANALYSIS/GIT DemoV2/Class 1 Survey Fall 2025 2.csv")
+
+```
+ 
+#a & b Determining the number of  observations and  variables
+```{r, chunk3,message=FALSE, echo=FALSE}
+dim(class1survey25)
+```
+# a & b Determining the number of  observations and  variables using another method 
+```{r, chunk4}
+nrow(class1survey25)
+ncol(class1survey25)
+```
+
+# a.checking name of current  columns 
+```{r, chunk5,message=FALSE, echo=FALSE}
+names(class1survey25)
+```
+#Renaming current columns
+```{r, chunk6 ,message=FALSE, echo=FALSE }
+class1survey25<-class1survey25 %>%
+  rename_with(~ c("id", "like_cats", "like_dogs", "have_desert", "slogan", "fav_day",
+"larkORowl", "fav_food", "fav_drink", "fav_season", "fav_month",
+"hobby", "program", "specialization", "stat_software", "R_exp",
+"coding_comfort", "coding_length", "top_three", "public_health_interest",
+"fav_num", "bday", "bmonth", "country", "state", "city",
+"highest_educ_level"),
+.cols = 1:27)
+```
+
+#displaying that they are renamed 
+```{r}
+colnames(class1survey25)
+```
+
+#determining and displaying number of factor,integer,numerical and character variables
+
+```{r, chunk7 , message=FALSE, echo=FALSE}
+var_classes<- sapply(class1survey25, class)
+```
+
+```{r}
+num_factors   <- sum(var_classes == "factor")
+num_integers  <- sum(var_classes == "integer")
+num_numerics  <- sum(var_classes == "numeric")
+num_characters <- sum(var_classes == "character")
+```
+
+displaying number of each type of variable
+```{r}
+cat("Number of factor variables:   ", num_factors, "\n")
+cat("Number of integer variables:  ", num_integers, "\n")
+cat("Number of numeric variables:  ", num_numerics, "\n")
+cat("Number of character variables:", num_characters, "\n")
+```
+
+
+
+#a.determining bday  variables for any unusual or missing values
+```{r, chunk8, message=FALSE, echo=FALSE}
+table(class1survey25$bday, useNA = "always")
+#   - NA values will be ignored when counting variable classes
+#   - Variables with unexpected classes (e.g., "list") will be flagged for manual review
+
+```
+
+#determining  bmonth variables for any unusual or missing values
+```{r}
+table(class1survey25$bmonth, useNA = "always")
+
+#   - NA values will be ignored when counting variable classes
+#   - Variables with unexpected classes (e.g., "list") will be flagged for manual review
+
+```
+
+#describing what i will do with unusual values 
+ Unusual values (e.g., NA, -99, 999, or wrong data types) are not removed here,
+# but if encountered, they will be handled separately depending on the analysis:
+#   - NA values will be ignored when counting variable classes
+#   - Miscoded numeric placeholders (like -99, 999) can be recoded to NA
+#   - Variables with unexpected classes (e.g., "list") will be flagged for manual review
+
+```{r 5c CLEANING BIRTH MONTH INTO NUMERIC}
+
+table(class1survey25$bmonth, useNA = "always")
+list_flags <- var_classes == "list"
+if (any(list_flags)) {
+  cat("List-type variables found:\n")
+  print(names(class1survey25)[list_flags])
+}
+class1survey25$bmonth <- as.numeric(as.character(class1survey25$bmonth))
+
+```
+
+# finding median  birthmonth
+
+```{r}
+month.median <- median(class1survey25$bmonth, na.rm = TRUE)
+
+cat("Median birth month:", month.median, "\n")
+```
+
+
+# CLEANING BIRTH DAY INTO NUMERIC
+```{r}
+
+table(class1survey25$bday, useNA = "always")
+list_flags <- var_classes == "list"
+if (any(list_flags)) {
+  cat("List-type variables found:\n")
+  print(names(class1survey25)[list_flags])
+}
+class1survey25$bday <- as.numeric (as.character(class1survey25$bday))
+```
+
+#finding median of  bday 
+```{r}
+bday.median <- median(class1survey25$bday, na.rm = TRUE)
+
+cat("Median birthday (day of month):", bday.median, "\n")
+
+```
+
+
+#6a CREATING NEW VARIABLE BirthSEASON
+```{r}
+class1survey25$Birthseason <- with(class1survey25, ifelse(class1survey25$bmonth %in% c(12, 1, 2), "Winter",
+                               ifelse(class1survey25$bmonth %in% c(3, 4, 5), "Spring",
+                               ifelse(class1survey25$bmonth %in% c(6, 7, 8), "Summer",
+                               ifelse(class1survey25$bmonth %in% c(9, 10, 11), "Fall", NA)))))
+```
+
+#6a CONVERTING TO FACTOR FOR NICER TABLES
+```{r}
+class1survey25$Birthseason <- factor(class1survey25$Birthseason, 
+                                 levels = c("Winter", "Spring", "Summer", "Fall"))
+
+```
+
+#6b TABLE OF SEASONS IN COLUMNS BY BIRTH MONTH IN ROWS
+```{r}
+season_month_table <- table(class1survey25$bmonth, class1survey25$Birthseason)
+print(season_month_table)
+```
+
+#6C SUMS PER COLUM
+```{r}
+season_counts <- addmargins(season_month_table, margin = 1)  # sum across rows = totals by season
+print(season_counts)
+```
+
+#6c CLASSMATES BORN IN EACH SEASON}
+```{r}
+cat("Number of classmates born in each season:\n")
+print(colSums(season_month_table, na.rm = TRUE))
+```
+
+#7 FREQUENCY TABLE PER COUNTRY
+```{r}
+library(dplyr)
+country_freq <- class1survey25 %>%
+  count(country, name = "Frequency") %>%
+  arrange(desc(Frequency))
+
+print(country_freq)
+```
+
+#7 comparison of  people who like cats  to dogs
+#frequency tabl comparison 
+```{r}
+# Cross-tabulation of cats vs dogs
+table(class1survey25$like_cats, class1survey25$like_dogs)
+
+```
+
+#proportions 
+```{r}
+# Row percentages
+prop.table(table(class1survey25$like_cats, class1survey25$like_dogs), 1)
+
+# Column percentages
+prop.table(table(class1survey25$like_cats, class1survey25$like_dogs), 2)
+
+```
+
+#visualization
+```{r}
+library(ggplot2)
+
+ggplot(class1survey25, aes(x = like_cats, fill = like_dogs)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Comparison of Cat Lovers vs Dog Lovers",
+       x = "Like Cats?",
+       y = "Count",
+       fill = "Like Dogs?")
+
+```
+
+```{r,WRITING THE CLEANED DATAFRAME TO A CSV FILE}
+ 
+
+write.csv(class1survey25, file = "class1survey25_clean.csv", row.names = FALSE)
+```
+
